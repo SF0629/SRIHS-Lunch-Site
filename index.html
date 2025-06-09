@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>서울시교육청 학교 급식 정보</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: linear-gradient(135deg, #f0f4ff, #d9e4ff);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #2c3e50;
+    }
+
+    h2 {
+      margin-bottom: 24px;
+      font-size: 1.8rem;
+      font-weight: 600;
+    }
+
+    .meal-card {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 28px 36px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      width: 90%;
+      transition: transform 0.3s ease;
+    }
+
+    .meal-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .meal-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .meal-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 1.05rem;
+      gap: 10px;
+    }
+
+    .meal-item:last-child {
+      border-bottom: none;
+    }
+
+    .meal-icon {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #4b91f1;
+      margin-top: 2px;
+    }
+
+    .form-section {
+      margin-top: 30px;
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    input[type="date"] {
+      padding: 10px 14px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+      transition: border-color 0.2s ease;
+    }
+
+    input[type="date"]:focus {
+      border-color: #4b91f1;
+      outline: none;
+    }
+
+    #result {
+      text-align: center;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h2>선린인터넷고등학교 오늘의 급식</h2>
+
+  <div id="result" class="meal-card">불러오는 중...</div>
+
+  <div class="form-section">
+    <label for="mealDate">다른 날짜 급식 보기</label>
+    <input type="date" id="mealDate" />
+  </div>
+
+  <script>
+    function getTodayISO() {
+      const now = new Date();
+      return now.toISOString().slice(0, 10);
+    }
+
+    function formatDate(dateStr) {
+      return dateStr.replace(/-/g, '');
+    }
+
+    function getMeal(dateStr) {
+      const officeCode = 'B10';
+      const schoolCode = '7010536';
+      const mealDate = formatDate(dateStr);
+      const apiKey = 'f90504d2e4f540ffab15f80b68fdb91d';
+
+      const url = `https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=${apiKey}&Type=json&ATPT_OFCDC_SC_CODE=${officeCode}&SD_SCHUL_CODE=${schoolCode}&MLSV_YMD=${mealDate}`;
+
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '불러오는 중...';
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          if (!data.mealServiceDietInfo || !data.mealServiceDietInfo[1] || !data.mealServiceDietInfo[1].row) {
+            resultDiv.innerHTML = '선택한 날짜에 급식 정보가 없습니다.';
+            return;
+          }
+
+          const mealsRaw = data.mealServiceDietInfo[1].row[0].DDISH_NM;
+          const mealsArray = mealsRaw.split('<br/>');
+
+          const mealList = mealsArray.map(meal => `
+            <li class="meal-item">
+              <span class="meal-icon"></span>
+              ${meal.trim()}
+            </li>
+          `).join('');
+
+          resultDiv.innerHTML = `<ul class="meal-list">${mealList}</ul>`;
+        })
+        .catch(error => {
+          console.error(error);
+          resultDiv.innerHTML = '급식 정보를 불러오지 못했습니다.';
+        });
+    }
+
+    window.onload = function () {
+      const today = getTodayISO();
+      document.getElementById('mealDate').value = today;
+      getMeal(today);
+
+      document.getElementById('mealDate').addEventListener('change', function () {
+        getMeal(this.value);
+      });
+    };
+  </script>
+</body>
+</html>
